@@ -23,10 +23,11 @@ jobs:
       - name: Build Windows installer (retry once)
         shell: pwsh
         run: |
+          if (Test-Path build.log) { Remove-Item build.log -Force }
           $attempts = 2
           for ($i = 1; $i -le $attempts; $i++) {
             Write-Host "Build attempt $i/$attempts"
-            npm run build:win
+            npm run build:win *>&1 | Tee-Object -FilePath build.log -Append
             if ($LASTEXITCODE -eq 0) { exit 0 }
             if ($i -lt $attempts) {
               Write-Host "Build failed, retrying in 10 seconds..."
@@ -51,6 +52,7 @@ jobs:
         with:
           name: VideoGrabber-windows-debug
           path: |
+            build.log
             release/builder-debug.yml
             release/builder-effective-config.yaml
           if-no-files-found: warn
