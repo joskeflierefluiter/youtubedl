@@ -1,0 +1,68 @@
+{
+  "name": "videograbber",
+  "version": "1.0.0",
+  "description": "Electron app to download YouTube videos with yt-dlp-exec",
+  "main": "main.js",
+  "scripts": {
+    "postinstall": "node scripts/generate-icons.js && node scripts/setup-yt-dlp.js",
+    "prestart": "node scripts/setup-yt-dlp.js",
+    "prebuild": "node scripts/setup-yt-dlp.js",
+    "prebuild:mac": "node scripts/setup-yt-dlp.js",
+    "prebuild:win": "node scripts/setup-yt-dlp.js",
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac dmg",
+    "build:win": "electron-builder --win nsis",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "electron",
+    "youtube",
+    "yt-dlp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "png-to-ico": "^2.1.8",
+    "pngjs": "^7.0.0"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "yt-dlp-wrap": "^2.3.12"
+  },
+  "build": {
+    "appId": "com.videograbber.app",
+    "productName": "VideoGrabber",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "scripts/**/*",
+      "bin/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "bin/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.video"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    }
+  }
+}
