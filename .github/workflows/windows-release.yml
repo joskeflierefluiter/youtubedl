@@ -9,11 +9,6 @@ on:
       release_name:
         description: Release name
         required: true
-        default: VideoGrabber Windows Release
-      prerelease:
-        description: "Use true for prerelease, false for stable"
-        required: false
-        default: "false"
 
 permissions:
   contents: write
@@ -35,51 +30,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows installer (retry once)
+      - name: Build Windows installer
         shell: pwsh
         run: |
           if (Test-Path build.log) { Remove-Item build.log -Force }
-          $attempts = 2
-          for ($i = 1; $i -le $attempts; $i++) {
-            Write-Host "Build attempt $i/$attempts"
-            npm run build:win *>&1 | Tee-Object -FilePath build.log -Append
-            if ($LASTEXITCODE -eq 0) { exit 0 }
-            if ($i -lt $attempts) {
-              Write-Host "Build failed, retrying in 10 seconds..."
-              Start-Sleep -Seconds 10
-            }
-          }
-          exit 1
+          npm run build:win *>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload build artifact
+      - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
           name: VideoGrabber-windows-release
           path: |
+            build.log
             release/*.exe
             release/*.blockmap
             release/latest*.yml
           if-no-files-found: error
 
-      - name: Upload debug artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: VideoGrabber-windows-release-debug
-          path: |
-            build.log
-            release/builder-debug.yml
-            release/builder-effective-config.yaml
-          if-no-files-found: warn
-
-      - name: Publish GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag }}
-          name: ${{ inputs.release_name }}
-          prerelease: ${{ inputs.prerelease == 'true' }}
+          tag_name: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.release_name }}
           generate_release_notes: true
-          target_commitish: ${{ github.sha }}
           files: |
             release/*.exe
             release/*.blockmap
