@@ -15,8 +15,11 @@ on:
       prerelease:
         description: Mark release as prerelease
         required: true
-        default: false
-        type: boolean
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 permissions:
   contents: write
@@ -32,14 +35,26 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows installer
-        run: npm run build:win
+      - name: Build Windows installer (retry once)
+        shell: pwsh
+        run: |
+          $attempts = 2
+          for ($i = 1; $i -le $attempts; $i++) {
+            Write-Host "Build attempt $i/$attempts"
+            npm run build:win
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($i -lt $attempts) {
+              Write-Host "Build failed, retrying in 10 seconds..."
+              Start-Sleep -Seconds 10
+            }
+          }
+          exit 1
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -51,12 +66,22 @@ jobs:
             release/latest*.yml
           if-no-files-found: error
 
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoGrabber-windows-release-debug
+          path: |
+            release/builder-debug.yml
+            release/builder-effective-config.yaml
+          if-no-files-found: warn
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
           name: ${{ inputs.release_name }}
-          prerelease: ${{ inputs.prerelease }}
+          prerelease: ${{ inputs.prerelease == 'true' }}
           generate_release_notes: true
           target_commitish: ${{ github.sha }}
           files: |

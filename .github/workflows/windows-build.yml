@@ -2,9 +2,6 @@ name: Build Windows Installer
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build-windows:
@@ -17,14 +14,26 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows installer
-        run: npm run build:win
+      - name: Build Windows installer (retry once)
+        shell: pwsh
+        run: |
+          $attempts = 2
+          for ($i = 1; $i -le $attempts; $i++) {
+            Write-Host "Build attempt $i/$attempts"
+            npm run build:win
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($i -lt $attempts) {
+              Write-Host "Build failed, retrying in 10 seconds..."
+              Start-Sleep -Seconds 10
+            }
+          }
+          exit 1
 
       - name: Upload installer artifacts
         uses: actions/upload-artifact@v4
@@ -35,3 +44,13 @@ jobs:
             release/*.blockmap
             release/latest*.yml
           if-no-files-found: error
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoGrabber-windows-debug
+          path: |
+            release/builder-debug.yml
+            release/builder-effective-config.yaml
+          if-no-files-found: warn
