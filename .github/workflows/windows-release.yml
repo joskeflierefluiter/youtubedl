@@ -32,6 +32,8 @@ jobs:
 
       - name: Build Windows installer
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if (Test-Path build.log) { Remove-Item build.log -Force }
           npm run build:win *>&1 | Tee-Object -FilePath build.log

@@ -22,6 +22,8 @@ jobs:
 
       - name: Build Windows installer (retry once)
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if (Test-Path build.log) { Remove-Item build.log -Force }
           $attempts = 2
